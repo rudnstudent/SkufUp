@@ -8,13 +8,16 @@
 ║  1. Микрофон постоянно записывает звук                                       ║
 ║  2. Когда слышим громкий звук - анализируем его                             ║
 ║  3. Сравниваем с эталонными записями открытия банки                         ║
-║  4. Если похожесть > 55% - это пиво!                                        ║
+║  4. Если похожесть > 45% - это пиво!                                        ║
 ║                                                                              ║
-║  Эталоны:                                                                    ║
-║  - template_close - запись с близкого расстояния (громкий чёткий звук)      ║
-║  - template_far   - запись с дальнего расстояния (тише, больше эха)         ║
+║  Эталоны (5 дистанций):                                                      ║
+║  - very_close: прямо у микрофона                                            ║
+║  - close: 30-50 см                                                          ║
+║  - medium: ~1 метр                                                          ║
+║  - far: ~2 метра                                                            ║
+║  - very_far: 3+ метра                                                       ║
 ║                                                                              ║
-║  Используем лучший результат из двух сравнений.                              ║
+║  Используем лучший результат из всех сравнений.                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -26,7 +29,7 @@ from scipy import signal      # Обработка сигналов
 
 # Импортируем настройки и эталонные звуки
 from config import AUDIO_SETTINGS, DETECTOR_SETTINGS
-from beer_sound_template import get_cached_template, get_cached_template_far, TEMPLATE_SAMPLE_RATE
+from beer_sound_template import get_all_templates, get_template, TEMPLATE_SAMPLE_RATE
 
 
 class BeerCanDetector:
@@ -74,22 +77,24 @@ class BeerCanDetector:
         self.cooldown = DETECTOR_SETTINGS["cooldown"]                          # 3 сек
         self.debug_mode = DETECTOR_SETTINGS.get("debug_mode", False)
         
-        # ===== ЗАГРУЖАЕМ ЭТАЛОННЫЕ ЗВУКИ =====
-        # Два эталона: с близкого и дальнего расстояния
-        self.template_close = get_cached_template()
-        self.template_far = get_cached_template_far()
+        # ===== ЗАГРУЖАЕМ ВСЕ 5 ЭТАЛОННЫХ ЗВУКОВ =====
+        # Загружаем шаблоны с разных дистанций
+        self.templates = get_all_templates()
         
-        # Извлекаем характеристики эталонов (делаем это один раз при запуске)
-        self.template_close_features = self._extract_features(self.template_close)
-        self.template_far_features = self._extract_features(self.template_far)
+        # Извлекаем характеристики всех эталонов (делаем это один раз при запуске)
+        self.template_features = {}
+        for name, template in self.templates.items():
+            self.template_features[name] = self._extract_features(template)
+        
+        print(f"   📦 Загружено {len(self.templates)} эталонных звуков")
         
         # ===== СОСТОЯНИЕ =====
         self.last_trigger_time = 0  # Время последнего срабатывания
         self.last_debug_time = 0    # Для отладочных сообщений
         
-        # Буфер для накопления аудио (300мс = 0.3 сек)
+        # Буфер для накопления аудио (500мс = 0.5 сек)
         # Нужен чтобы захватить весь звук открытия целиком
-        self.audio_buffer = deque(maxlen=int(self.rate * 0.3))
+        self.audio_buffer = deque(maxlen=int(self.rate * 0.5))
         
         # Фоновый уровень шума (адаптивный)
         self.background_levels = deque(maxlen=30)
@@ -171,6 +176,70 @@ class BeerCanDetector:
         }
     
     
+    def _find_sound_segment(self, audio_data: np.ndarray) -> np.ndarray:
+        """
+        Найти реальные границы звука в буфере.
+        
+        Использует порог 5% от пика для определения начала и конца звука.
+        Возвращает сегмент 100-500мс с реальным звуком (без лишней тишины).
+        
+        Аргументы:
+            audio_data: буфер аудио данных
+            
+        Возвращает:
+            numpy массив с извлечённым сегментом звука
+        """
+        # Огибающая для поиска границ
+        envelope = np.abs(audio_data)
+        
+        # Сглаживаем
+        window = int(self.rate * 0.005)  # 5мс окно
+        if window > 0:
+            envelope = np.convolve(envelope, np.ones(window)/window, mode='same')
+        
+        peak_val = np.max(envelope)
+        threshold = peak_val * 0.05  # 5% от пика
+        
+        # Находим где звук начинается и заканчивается
+        above_threshold = np.where(envelope > threshold)[0]
+        
+        if len(above_threshold) < 100:  # Слишком мало данных
+            # Fallback: берём окно вокруг пика
+            peak_idx = np.argmax(np.abs(audio_data))
+            samples_before = int(self.rate * 0.05)
+            samples_after = int(self.rate * 0.25)
+            start = max(0, peak_idx - samples_before)
+            end = min(len(audio_data), peak_idx + samples_after)
+            return audio_data[start:end]
+        
+        start_idx = above_threshold[0]
+        end_idx = above_threshold[-1]
+        
+        # Добавляем небольшие отступы (10мс до и после)
+        padding = int(self.rate * 0.01)
+        start_idx = max(0, start_idx - padding)
+        end_idx = min(len(audio_data), end_idx + padding)
+        
+        # Ограничиваем размер сегмента (100-500мс)
+        min_samples = int(self.rate * 0.1)  # 100мс
+        max_samples = int(self.rate * 0.5)  # 500мс
+        
+        segment_len = end_idx - start_idx
+        
+        if segment_len < min_samples:
+            # Добавляем данные вокруг
+            center = (start_idx + end_idx) // 2
+            start_idx = max(0, center - min_samples // 2)
+            end_idx = min(len(audio_data), start_idx + min_samples)
+        elif segment_len > max_samples:
+            # Обрезаем до 500мс, центрируя на пике
+            peak_idx = start_idx + np.argmax(np.abs(audio_data[start_idx:end_idx]))
+            start_idx = max(0, peak_idx - max_samples // 3)
+            end_idx = min(len(audio_data), start_idx + max_samples)
+        
+        return audio_data[start_idx:end_idx]
+    
+    
     # ========================================================================
     # СРАВНЕНИЕ С ЭТАЛОНАМИ
     # ========================================================================
@@ -239,32 +308,37 @@ class BeerCanDetector:
         
         return total_similarity
     
-    def _compare_with_template(self, audio_data: np.ndarray) -> float:
+    def _compare_with_template(self, audio_data: np.ndarray) -> tuple:
         """
-        Сравнить звук с ОБОИМИ эталонами и вернуть лучший результат.
+        Сравнить звук со ВСЕМИ 5 эталонами и вернуть лучший результат.
         
-        Зачем два эталона:
-        - Если микрофон близко - звук похож на template_close
-        - Если микрофон далеко - звук похож на template_far
-        - Берём лучший результат
+        5 эталонов с разных дистанций:
+        - very_close: прямо у микрофона
+        - close: 30-50 см
+        - medium: ~1 метр
+        - far: ~2 метра
+        - very_far: 3+ метра
         
         Аргументы:
             audio_data: массив с аудио данными
         
         Возвращает:
-            float - максимальная похожесть (0.0 - 1.0)
+            tuple (похожесть, название_эталона)
         """
         # Извлекаем характеристики входного звука
         features = self._extract_features(audio_data)
         
-        # Сравниваем с эталоном "близко"
-        similarity_close = self._compare_with_single_template(features, self.template_close_features)
+        best_similarity = 0.0
+        best_template = ""
         
-        # Сравниваем с эталоном "далеко"
-        similarity_far = self._compare_with_single_template(features, self.template_far_features)
+        # Сравниваем с каждым эталоном
+        for name, template_features in self.template_features.items():
+            similarity = self._compare_with_single_template(features, template_features)
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_template = name
         
-        # Возвращаем лучший результат
-        return max(similarity_close, similarity_far)
+        return best_similarity, best_template
     
     
     # ========================================================================
@@ -388,29 +462,21 @@ class BeerCanDetector:
             # Берём весь буфер для анализа
             buffer_array = np.array(self.audio_buffer)
             
-            # Находим пик и вырезаем окно вокруг него
-            # 50мс до пика, 150мс после (характерно для открытия банки)
-            peak_idx = np.argmax(np.abs(buffer_array))
-            samples_before = int(self.rate * 0.05)   # 50мс
-            samples_after = int(self.rate * 0.15)    # 150мс
-            
-            start_idx = max(0, peak_idx - samples_before)
-            end_idx = min(len(buffer_array), peak_idx + samples_after)
-            
-            segment = buffer_array[start_idx:end_idx]
+            # Находим границы звука динамически (как при записи шаблонов)
+            segment = self._find_sound_segment(buffer_array)
             
             # Проверяем, достаточно ли данных для анализа
             if len(segment) > 1000:
                 
-                # СРАВНИВАЕМ С ЭТАЛОНОМ!
-                similarity = self._compare_with_template(segment)
+                # СРАВНИВАЕМ СО ВСЕМИ 5 ЭТАЛОНАМИ!
+                similarity, matched_template = self._compare_with_template(segment)
                 
                 if self.debug_mode:
-                    print(f"\n   📊 Похожесть на эталон: {similarity:.1%}")
+                    print(f"\n   📊 Похожесть: {similarity:.1%} (эталон: {matched_template})")
                 
                 # Если похожесть выше порога - это пиво!
                 if similarity >= self.similarity_threshold:
-                    print(f"\n\n🍺 БАНКА ОТКРЫТА! (похожесть: {similarity:.1%})")
+                    print(f"\n\n🍺 БАНКА ОТКРЫТА! (похожесть: {similarity:.1%}, дистанция: {matched_template})")
                     self.last_trigger_time = current_time
                     self.audio_buffer.clear()  # Очищаем буфер
                     return True
