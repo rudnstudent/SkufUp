@@ -85,10 +85,10 @@ pyinstaller --onefile --name=SkufUp_Setup --icon=setup.ico SkufUp_Installer.py
 
 ```python
 DETECTOR_SETTINGS = {
-    # Порог похожести (0.55 = 55%)
+    # Порог похожести (0.45 = 45%)
     # Увеличь если много ложных срабатываний
     # Уменьши если не ловит банку
-    "similarity_threshold": 0.55,
+    "similarity_threshold": 0.45,
     
     # Порог громкости
     "peak_threshold": 0.1,
