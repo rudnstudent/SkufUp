@@ -70,7 +70,7 @@ python gui_app.py
 
 <div align="center">
 
-![How to use](https://media.giphy.com/media/LmNwrBhejkK9EFP504/giphy.gif)
+![How to use](https://gifs.obs.ru-moscow-1.hc.sbercloud.ru/bbfec04fc1cb15ad8ccc0df98b2275829fe4196bd4c22bc1836a912796f418d5.gif)
 
 </div>
 
@@ -189,7 +189,7 @@ pyinstaller SkufUp.spec --noconfirm
 
 ## 🍻 Приятного пивопития!
 
-![Cheers](https://media.giphy.com/media/3o6Zt6KHxJTbXCnSvu/giphy.gif)
+![Cheers](https://media.tenor.com/780S-3Ft-8kAAAAM/beer-time.gif)
 
 **Сделано с 🍺 и ❤️**
 
