@@ -32,3 +32,19 @@ Pillow
 # Команда сборки:
 # pyinstaller --onefile --windowed --name=SkufUp --icon=beer.ico gui_app.py
 pyinstaller
+
+# Работа с длинными записями (извлечение шаблонов)
+# pydub: удобная обёртка для MP3/WAV (требует ffmpeg)
+pydub
+# soundfile: чтение/запись WAV через libsndfile
+soundfile
+
+# Scikit-learn - машинное обучение (ML детектор)
+# Используется для: RandomForest классификатора звуков
+scikit-learn
+
+# psutil - мониторинг процессов (диспетчер задач)
+# Используется для: проверки запущена ли уже игра
+psutil
+
+# Примечание: для работы с MP3 установите ffmpeg и убедитесь, что он в PATH

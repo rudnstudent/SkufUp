@@ -33,3 +33,19 @@ user_settings.json
 *.tmp
 .DS_Store
 Thumbs.db
+
+# ===== Файлы проекта SkufUp =====
+
+# Папка со звуками (большие файлы)
+sound/
+templates/
+
+# ML модель и данные (генерируются при обучении)
+beer_detector_model.pkl
+beer_features.json
+
+# Сгенерированный установщик (очень большой, ~80MB)
+SkufUp_Installer.py
+
+# Иконки (бинарные файлы)
+*.ico
