@@ -1,8 +1,15 @@
-# 🍺 SkufUp — Детектор Открытия Пива
+# 🍺 SkufUp — Beer Can Opening Detector
 
 <div align="center">
 
-> *🍻 Во время разработки было потрачено 56 банок Балтики 9 🍻*
+**🌐 Language:**  
+[![English](https://img.shields.io/badge/English-blue.svg)](README.md) [![Русский](https://img.shields.io/badge/Русский-red.svg)](docs/README.ru.md) [![Deutsch](https://img.shields.io/badge/Deutsch-yellow.svg)](docs/README.de.md) [![Español](https://img.shields.io/badge/Español-orange.svg)](docs/README.es.md) [![Français](https://img.shields.io/badge/Français-purple.svg)](docs/README.fr.md) [![中文](https://img.shields.io/badge/中文-green.svg)](docs/README.zh.md) [![Čeština](https://img.shields.io/badge/Čeština-darkblue.svg)](docs/README.cs.md) [![Nederlands](https://img.shields.io/badge/Nederlands-darkorange.svg)](docs/README.nl.md)
+
+</div>
+
+<div align="center">
+
+> *🍻 56 cans of beer were consumed during development 🍻*
 
 </div>
 
@@ -10,7 +17,7 @@
 
 ![Beer Detection](https://gifs.obs.ru-moscow-1.hc.sbercloud.ru/9a9d843e4afa4c94fd32eac95b1e07a2483b293d5eb816cff79ad64a51b59acf.gif)
 
-**Открой пиво → Запустится игра**
+**Open a beer → Game launches**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Windows](https://img.shields.io/badge/Platform-Windows-blue.svg)](https://windows.com)
@@ -21,14 +28,14 @@
 
 ---
 
-## 🎯 Что это?
+## 🎯 What is this?
 
-**SkufUp** слушает микрофон и ждёт характерный звук **"пшик"** открытия банки пива.  
-Когда слышит — автоматически запускает игру или открывает сайт!
+**SkufUp** listens to your microphone and waits for the characteristic **"pshhh"** sound of opening a beer can.  
+When it hears it — automatically launches a game or opens a website!
 
 <div align="center">
 
-| До пива 😢 | | После пива 🍺 |
+| Before beer 😢 | | After beer 🍺 |
 |:---:|:---:|:---:|
 | <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStzvxmAUkKO2cwGsKxnqy2RRSrQom17-wHh4LCQw7Byg&s" width="200" height="200"> | ➡️ | <img src="https://www.meme-arsenal.com/memes/0e757738df2f12eb86e17f227bc55b92.jpg" width="200" height="200"> |
 
@@ -36,37 +43,37 @@
 
 ---
 
-## ✨ Фишки
+## ✨ Features
 
-- 🤖 **ML детектор** — обучен на реальных записях, точность ~95%
-- 🎮 **Проверка процессов** — не откроет игру, если она уже запущена
-- 🌐 **Поддержка сайтов** — можно открывать любой URL
-- 🚀 **Автозагрузка** — запускается вместе с Windows
-- 🎨 **Красивый интерфейс** — тёмная тема, минималистичный дизайн
+- 🤖 **ML Detector** — trained on real recordings, ~95% accuracy
+- 🎮 **Process Check** — won't open the game if it's already running
+- 🌐 **Website Support** — can open any URL
+- 🚀 **Autostart** — launches with Windows
+- 🎨 **Beautiful Interface** — dark theme, minimalist design
 
 ---
 
-## 📦 Установка
+## 📦 Installation
 
-### Вариант 1: Готовый установщик
-Скачай `SkufUp_Setup.exe` из [Releases](https://github.com/rudnstudent/SkufUp/releases/tag/beer) и запусти.
+### Option 1: Ready-made Installer
+Download `SkufUp_Setup.exe` from [Releases](https://github.com/rudnstudent/SkufUp/releases/tag/new_languages) and run it.
 
-### Вариант 2: Из исходников
+### Option 2: From Source
 ```bash
-# Клонируй репозиторий
+# Clone the repository
 git clone https://github.com/your-username/SkufUp.git
 cd SkufUp
 
-# Установи зависимости
+# Install dependencies
 pip install -r requirements.txt
 
-# Запусти
+# Run
 python gui_app.py
 ```
 
 ---
 
-## 🚀 Как использовать
+## 🚀 How to Use
 
 <div align="center">
 
@@ -74,124 +81,124 @@ python gui_app.py
 
 </div>
 
-1. **Запусти** SkufUp
-2. **Выбери** игру (.exe) или укажи сайт
-3. **Нажми** СТАРТ
-4. **Открой пиво** 🍺
-5. **Наслаждайся!** 🎮
+1. **Launch** SkufUp
+2. **Choose** a game (.exe) or specify a website
+3. **Press** START
+4. **Open a beer** 🍺
+5. **Enjoy!** 🎮
 
 ---
 
-## 🔧 Как работает ML детектор
+## 🔧 How the ML Detector Works
 
 ```
-🎤 Микрофон → 📊 Анализ звука → 🤖 ML модель → ✅ Пиво!
+🎤 Microphone → 📊 Audio Analysis → 🤖 ML Model → ✅ Beer!
 ```
 
-| Этап | Описание |
-|------|----------|
-| 1️⃣ | Микрофон записывает звук в реальном времени |
-| 2️⃣ | Извлекаются признаки: спектр, огибающая, частоты |
-| 3️⃣ | RandomForest классифицирует: пиво или нет |
-| 4️⃣ | Дополнительные проверки: H/L ratio, centroid, duration |
-| 5️⃣ | Если всё сходится → запуск игры/сайта |
+| Step | Description |
+|------|-------------|
+| 1️⃣ | Microphone records sound in real-time |
+| 2️⃣ | Features extracted: spectrum, envelope, frequencies |
+| 3️⃣ | RandomForest classifies: beer or not |
+| 4️⃣ | Additional checks: H/L ratio, centroid, duration |
+| 5️⃣ | If everything matches → launch game/website |
 
-**Характерные признаки "пшика":**
-- 📈 Высокие частоты (2-8 кГц) — шипение газа
-- ⚡ Быстрый attack — резкое начало
-- 📉 Короткая длительность — 100-500 мс
+**Characteristic features of "pshhh":**
+- 📈 High frequencies (2-8 kHz) — gas hissing
+- ⚡ Fast attack — sudden onset
+- 📉 Short duration — 100-500 ms
 
 ---
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
-Открытый код/
-├── gui_app.py              # 🖥️ Главное приложение с интерфейсом
-├── audio_detector_ml.py    # 🤖 ML детектор звука
-├── audio_detector.py       # 📊 Базовый детектор (fallback)
-├── train_model.py          # 🎓 Обучение ML модели
-├── analyze_audio.py        # 📈 Анализ аудио файлов
-├── config.py               # ⚙️ Настройки
-├── beer_sound_template.py  # 🍺 Эталонные звуки
-├── build_installer.py      # 📦 Сборка инсталлятора
-└── requirements.txt        # 📋 Зависимости
+Source Code/
+├── gui_app.py              # 🖥️ Main application with GUI
+├── audio_detector_ml.py    # 🤖 ML sound detector
+├── audio_detector.py       # 📊 Basic detector (fallback)
+├── train_model.py          # 🎓 ML model training
+├── analyze_audio.py        # 📈 Audio file analysis
+├── config.py               # ⚙️ Settings
+├── beer_sound_template.py  # 🍺 Reference sounds
+├── build_installer.py      # 📦 Installer builder
+└── requirements.txt        # 📋 Dependencies
 ```
 
 ---
 
-## ⚙️ Настройка
+## ⚙️ Configuration
 
-Открой `config.py`:
+Open `config.py`:
 
 ```python
 DETECTOR_SETTINGS = {
-    "similarity_threshold": 0.45,  # Порог похожести
-    "peak_threshold": 0.1,         # Порог громкости
-    "cooldown": 3.0,               # Пауза между срабатываниями
-    "debug_mode": True,            # Показывать логи
+    "similarity_threshold": 0.45,  # Similarity threshold
+    "peak_threshold": 0.1,         # Volume threshold
+    "cooldown": 3.0,               # Pause between triggers
+    "debug_mode": True,            # Show logs
 }
 ```
 
-| Проблема | Решение |
-|----------|---------|
-| Ложные срабатывания | Увеличь `similarity_threshold` до 0.55-0.60 |
-| Не ловит банку | Уменьши `similarity_threshold` до 0.40 |
-| Слишком частые срабатывания | Увеличь `cooldown` до 5-10 сек |
+| Problem | Solution |
+|---------|----------|
+| False positives | Increase `similarity_threshold` to 0.55-0.60 |
+| Doesn't catch can | Decrease `similarity_threshold` to 0.40 |
+| Too frequent triggers | Increase `cooldown` to 5-10 sec |
 
 ---
 
-## 🛠️ Сборка .exe
+## 🛠️ Building .exe
 
 ```bash
-# Собрать приложение
+# Build application
 pyinstaller SkufUp.spec --noconfirm
 
-# Создать инсталлятор
+# Create installer
 python build_installer.py
 pyinstaller --onefile --windowed --name=SkufUp_Setup --icon=setup.ico SkufUp_Installer.py
 ```
 
 ---
 
-## 🎓 Обучение своей модели
+## 🎓 Training Your Own Model
 
-Если хочешь улучшить точность:
+If you want to improve accuracy:
 
 ```bash
-# 1. Положи свои записи в папку sound/
-# 2. Проанализируй
+# 1. Put your recordings in sound/ folder
+# 2. Analyze
 python analyze_audio.py
 
-# 3. Обучи модель
+# 3. Train model
 python train_model.py
 
-# 4. Пересобери exe
+# 4. Rebuild exe
 pyinstaller SkufUp.spec --noconfirm
 ```
 
 ---
 
-## 🐛 Отладка
+## 🐛 Debugging
 
-Включи `debug_mode: True` и смотри консоль:
+Enable `debug_mode: True` and watch the console:
 
 ```
 🔈 [████████░░░░░░░░░░░░] RMS:0.023 Peak:0.089
 🔊 [████████████████████] RMS:0.156 Peak:0.423
-   🤖 ML вероятность: 89% | H/L: 15.2 | Centroid: 8500Hz
-🍺 БАНКА ОТКРЫТА! (ML: 89%, H/L: 15.2)
+   🤖 ML probability: 89% | H/L: 15.2 | Centroid: 8500Hz
+🍺 CAN OPENED! (ML: 89%, H/L: 15.2)
 ```
 
 ---
 
 <div align="center">
 
-## 🍻 Приятного пивопития!
+## 🍻 Enjoy your beer!
 
 ![Cheers](https://media.tenor.com/780S-3Ft-8kAAAAM/beer-time.gif)
 
-**Сделано с 🍺 и ❤️**
+**Made with 🍺 and ❤️**
 
 </div>
 

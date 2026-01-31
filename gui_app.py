@@ -1,37 +1,38 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                           SkufUp - Детектор Пива 🍺                          ║
+║                         SkufUp - Beer Detector 🍺                            ║
 ║                                                                              ║
-║  Программа слушает микрофон и ждёт звук открытия банки пива.                ║
-║  Когда слышит характерный "пшик" - запускает игру или открывает сайт.       ║
+║  The app listens to the microphone and waits for beer can opening sound.    ║
+║  When it hears the characteristic "pshhh" - launches a game or website.     ║
 ║                                                                              ║
-║  Как это работает:                                                           ║
-║  1. Микрофон постоянно записывает звук                                       ║
-║  2. Каждый громкий звук сравнивается с эталонным "пшиком" банки             ║
-║  3. Если похожесть больше 55% - это пиво! Запускаем игру!                   ║
-║                                                                              ║
-║  Автор: Создано с помощью GitHub Copilot                                     ║
+║  How it works:                                                               ║
+║  1. Microphone continuously records sound                                    ║
+║  2. Each loud sound is compared with reference "pshhh" template             ║
+║  3. If similarity is above 55% - it's beer! Launch the game!                ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
 # ============================================================================
-# ИМПОРТ БИБЛИОТЕК
+# LIBRARY IMPORTS
 # ============================================================================
 
-import tkinter as tk                    # Графический интерфейс (окна, кнопки)
+import tkinter as tk                    # GUI (windows, buttons)
 from tkinter import ttk, filedialog, messagebox
-import threading                        # Многопоточность (слушаем звук в фоне)
-import os                               # Работа с файлами и путями
-import sys                              # Системные функции
-import json                             # Сохранение настроек в файл
-import webbrowser                       # Открытие сайтов в браузере
-import subprocess                       # Запуск программ (игр)
-import winreg                           # Реестр Windows (для автозагрузки)
-import ctypes                           # Windows API (для проверки одного экземпляра)
+import threading                        # Multithreading (listen in background)
+import os                               # File and path operations
+import sys                              # System functions
+import json                             # Save settings to file
+import webbrowser                       # Open websites in browser
+import subprocess                       # Launch programs (games)
+import winreg                           # Windows registry (for autostart)
+import ctypes                           # Windows API (for single instance check)
+
+# Localization support
+from localization import t, set_language, get_current_language, get_localization
 
 
 # ============================================================================
-# ЗАЩИТА ОТ ПОВТОРНОГО ЗАПУСКА
+# SINGLE INSTANCE PROTECTION
 # ============================================================================
 
 def check_single_instance():
@@ -166,30 +167,36 @@ class SkufUpApp:
     
     def __init__(self):
         """
-        Конструктор - вызывается при создании программы.
-        Здесь мы настраиваем окно и загружаем настройки.
+        Constructor - called when the application is created.
+        Here we set up the window and load settings.
         """
         
-        # ===== СОЗДАНИЕ ОКНА =====
-        self.root = tk.Tk()
-        self.root.title("SkufUp - Детектор Пива 🍺")
-        self.root.geometry("520x650")           # Размер окна
-        self.root.resizable(False, False)       # Нельзя менять размер
-        self.root.configure(bg="#1a1a2e")       # Тёмный фон
+        # ===== LOAD SETTINGS AND LANGUAGE =====
+        self.settings = load_settings()     # Load saved settings
         
-        # ===== ИКОНКА ОКНА =====
+        # Set language from settings (default: English)
+        saved_lang = self.settings.get("language", "en")
+        set_language(saved_lang)
+        
+        # ===== CREATE WINDOW =====
+        self.root = tk.Tk()
+        self.root.title(t("window_title"))
+        self.root.geometry("520x700")           # Window size
+        self.root.resizable(False, False)       # Fixed size
+        self.root.configure(bg="#1a1a2e")       # Dark background
+        
+        # ===== WINDOW ICON =====
         try:
             icon_path = os.path.join(get_app_path(), "beer.ico")
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
         except:
-            pass  # Не страшно, если иконки нет
+            pass  # It's ok if no icon
         
-        # ===== ПЕРЕМЕННЫЕ СОСТОЯНИЯ =====
-        self.is_listening = False           # Сейчас слушаем? (нет)
-        self.settings = load_settings()     # Загружаем сохранённые настройки
-        self.stop_flag = threading.Event()  # Флаг для остановки потока
-        self.last_launch_time = 0           # Время последнего запуска (для cooldown 1 час)
+        # ===== STATE VARIABLES =====
+        self.is_listening = False           # Currently listening? (no)
+        self.stop_flag = threading.Event()  # Flag to stop the thread
+        self.last_launch_time = 0           # Last launch time (for 1 hour cooldown)
         
         # ===== СОЗДАЁМ ИНТЕРФЕЙС =====
         self.create_widgets()
@@ -234,72 +241,110 @@ class SkufUpApp:
         └─────────────────────────────────┘
         """
         
-        # ----- ЗАГОЛОВОК -----
+        # ----- HEADER -----
         title = tk.Label(
             self.root,
-            text="🍺 SkufUp",
+            text=t("title"),
             font=("Segoe UI", 28, "bold"),
-            fg="#eab308",   # Жёлтый (цвет пива!)
+            fg="#eab308",   # Yellow (beer color!)
             bg="#1a1a2e"
         )
         title.pack(pady=(20, 5))
         
-        # Подзаголовок
-        subtitle = tk.Label(
+        # Subtitle
+        self.subtitle_label = tk.Label(
             self.root,
-            text="Детектор звука открытия пива",
+            text=t("subtitle"),
             font=("Segoe UI", 11),
             fg="#888888",
             bg="#1a1a2e"
         )
-        subtitle.pack()
+        self.subtitle_label.pack()
         
-        # ----- ИНДИКАТОР СТАТУСА -----
-        # Показывает текущее состояние: слушаем / не слушаем / пиво!
+        # ----- LANGUAGE SELECTOR -----
+        lang_frame = tk.Frame(self.root, bg="#1a1a2e")
+        lang_frame.pack(pady=5)
+        
+        tk.Label(
+            lang_frame,
+            text="🌐",
+            font=("Segoe UI", 12),
+            fg="#888888",
+            bg="#1a1a2e"
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Language options
+        self.languages = {
+            "en": "English",
+            "ru": "Русский", 
+            "de": "Deutsch",
+            "es": "Español",
+            "fr": "Français",
+            "zh": "中文",
+            "cs": "Čeština",
+            "nl": "Nederlands"
+        }
+        
+        self.lang_var = tk.StringVar(value=self.languages.get(get_current_language(), "English"))
+        
+        self.lang_combo = ttk.Combobox(
+            lang_frame,
+            textvariable=self.lang_var,
+            values=list(self.languages.values()),
+            state="readonly",
+            width=12,
+            font=("Segoe UI", 10)
+        )
+        self.lang_combo.pack(side=tk.LEFT, padx=5)
+        self.lang_combo.bind("<<ComboboxSelected>>", self.change_language)
+        
+        # ----- STATUS INDICATOR -----
+        # Shows current state: listening / not listening / beer!
         status_frame = tk.Frame(self.root, bg="#1a1a2e")
         status_frame.pack(pady=15)
         
-        # Цветной кружок (меняет цвет в зависимости от статуса)
+        # Colored circle (changes color based on status)
         self.status_indicator = tk.Label(
             status_frame,
             text="●",
             font=("Segoe UI", 24),
-            fg="#666666",   # Серый = не активен
+            fg="#666666",   # Gray = not active
             bg="#1a1a2e"
         )
         self.status_indicator.pack(side=tk.LEFT, padx=5)
         
-        # Текст статуса
+        # Status text
         self.status_label = tk.Label(
             status_frame,
-            text="Не активен",
+            text=t("status_inactive"),
             font=("Segoe UI", 14),
             fg="#888888",
             bg="#1a1a2e"
         )
         self.status_label.pack(side=tk.LEFT)
         
-        # ----- БЛОК ВЫБОРА ЦЕЛИ -----
-        # Здесь пользователь выбирает игру или сайт
+        # ----- TARGET SELECTION BLOCK -----
+        # Here user selects game or website
         target_frame = tk.Frame(self.root, bg="#252547", padx=20, pady=15)
         target_frame.pack(pady=10, padx=20, fill=tk.X)
         
-        tk.Label(
+        self.target_label = tk.Label(
             target_frame,
-            text="Что открывать при звуке пива:",
+            text=t("target_label"),
             font=("Segoe UI", 11, "bold"),
             fg="#ffffff",
             bg="#252547"
-        ).pack(anchor=tk.W)
+        )
+        self.target_label.pack(anchor=tk.W)
         
-        # Кнопки "Выбрать игру" и "Указать сайт"
+        # "Select game" and "Enter website" buttons
         btn_type_frame = tk.Frame(target_frame, bg="#252547")
         btn_type_frame.pack(fill=tk.X, pady=10)
         
-        # Кнопка выбора игры (синяя)
+        # Game selection button (blue)
         self.btn_game = tk.Button(
             btn_type_frame,
-            text="🎮 Выбрать игру",
+            text=t("btn_select_game"),
             font=("Segoe UI", 11),
             fg="#ffffff",
             bg="#3b82f6",
@@ -313,10 +358,10 @@ class SkufUpApp:
         )
         self.btn_game.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Кнопка выбора сайта (фиолетовая)
+        # Website selection button (purple)
         self.btn_website = tk.Button(
             btn_type_frame,
-            text="🌐 Указать сайт",
+            text=t("btn_select_website"),
             font=("Segoe UI", 11),
             fg="#ffffff",
             bg="#8b5cf6",
@@ -330,19 +375,20 @@ class SkufUpApp:
         )
         self.btn_website.pack(side=tk.LEFT)
         
-        # ----- ПОЛЕ ВВОДА САЙТА -----
-        # Показывается когда пользователь нажмёт "Указать сайт"
+        # ----- WEBSITE INPUT FIELD -----
+        # Shown when user clicks "Enter website"
         self.website_frame = tk.Frame(target_frame, bg="#252547")
         
-        tk.Label(
+        self.url_hint_label = tk.Label(
             self.website_frame,
-            text="Введите URL и нажмите Enter:",
+            text=t("url_hint"),
             font=("Segoe UI", 9),
             fg="#888888",
             bg="#252547"
-        ).pack(anchor=tk.W)
+        )
+        self.url_hint_label.pack(anchor=tk.W)
         
-        # Поле для ввода URL
+        # URL input field
         self.url_entry = tk.Entry(
             self.website_frame,
             font=("Segoe UI", 12),
@@ -354,20 +400,20 @@ class SkufUpApp:
         )
         self.url_entry.pack(fill=tk.X, pady=5, ipady=8)
         
-        # Привязываем клавиши
+        # Key bindings
         self.url_entry.bind('<Return>', self.save_website)      # Enter
-        self.url_entry.bind('<KP_Enter>', self.save_website)    # Enter на нумпаде
+        self.url_entry.bind('<KP_Enter>', self.save_website)    # Numpad Enter
         self.url_entry.bind('<Control-v>', self.paste_url)      # Ctrl+V
-        self.url_entry.bind('<Control-V>', self.paste_url)      # Ctrl+V (большая V)
-        self.url_entry.bind('<Button-3>', self.show_context_menu)  # Правая кнопка мыши
+        self.url_entry.bind('<Control-V>', self.paste_url)      # Ctrl+V (capital V)
+        self.url_entry.bind('<Button-3>', self.show_context_menu)  # Right mouse button
         
-        # Кнопка сохранения сайта
+        # Save website button
         self.save_url_btn = tk.Button(
             self.website_frame,
-            text="💾 Сохранить (или Enter)",
+            text=t("btn_save_url"),
             font=("Segoe UI", 10),
             fg="#ffffff",
-            bg="#22c55e",   # Зелёная
+            bg="#22c55e",   # Green
             activebackground="#16a34a",
             relief=tk.FLAT,
             cursor="hand2",
@@ -375,17 +421,17 @@ class SkufUpApp:
         )
         self.save_url_btn.pack(anchor=tk.W, pady=(5, 0))
         
-        # ----- КОНТЕКСТНОЕ МЕНЮ -----
-        # Появляется при правом клике на поле ввода
+        # ----- CONTEXT MENU -----
+        # Appears on right click in input field
         self.context_menu = tk.Menu(self.root, tearoff=0, bg="#252547", fg="#ffffff")
-        self.context_menu.add_command(label="Вставить", command=self.paste_url_from_menu)
-        self.context_menu.add_command(label="Очистить", command=lambda: self.url_entry.delete(0, tk.END))
+        self.context_menu.add_command(label=t("menu_paste"), command=self.paste_url_from_menu)
+        self.context_menu.add_command(label=t("menu_clear"), command=lambda: self.url_entry.delete(0, tk.END))
         
-        # ----- ОТОБРАЖЕНИЕ ТЕКУЩЕЙ ЦЕЛИ -----
-        # Показывает что сейчас выбрано (игра или сайт)
+        # ----- CURRENT TARGET DISPLAY -----
+        # Shows what is currently selected (game or website)
         self.current_target_frame = tk.Frame(target_frame, bg="#1a1a2e", padx=10, pady=10)
         
-        # Тип цели (🎮 Игра: или 🌐 Сайт:)
+        # Target type (🎮 Game: or 🌐 Website:)
         self.target_type_label = tk.Label(
             self.current_target_frame,
             text="",
@@ -395,21 +441,21 @@ class SkufUpApp:
         )
         self.target_type_label.pack(anchor=tk.W)
         
-        # Путь к игре или URL сайта
+        # Path to game or website URL
         self.target_path_label = tk.Label(
             self.current_target_frame,
             text="",
             font=("Segoe UI", 11, "bold"),
             fg="#22c55e",
             bg="#1a1a2e",
-            wraplength=420  # Перенос длинных строк
+            wraplength=420  # Wrap long strings
         )
         self.target_path_label.pack(anchor=tk.W)
         
-        # Кнопка "Изменить"
+        # "Change" button
         self.btn_change = tk.Button(
             self.current_target_frame,
-            text="✏️ Изменить",
+            text=t("btn_change"),
             font=("Segoe UI", 9),
             fg="#888888",
             bg="#333355",
@@ -420,16 +466,16 @@ class SkufUpApp:
         )
         self.btn_change.pack(anchor=tk.W, pady=(5, 0))
         
-        # Обновляем отображение (покажет текущую цель или скроет блок)
+        # Update display (shows current target or hides the block)
         self.update_target_display()
         
-        # ----- БОЛЬШАЯ КНОПКА СТАРТ/СТОП -----
+        # ----- BIG START/STOP BUTTON -----
         self.toggle_btn = tk.Button(
             self.root,
-            text="▶  СТАРТ",
+            text=t("btn_start"),
             font=("Segoe UI", 24, "bold"),
             fg="#ffffff",
-            bg="#16a34a",   # Зелёная
+            bg="#16a34a",   # Green
             activebackground="#15803d",
             activeforeground="#ffffff",
             width=20,
@@ -440,11 +486,11 @@ class SkufUpApp:
         )
         self.toggle_btn.pack(pady=30, padx=30, fill=tk.X)
         
-        # ----- ГАЛОЧКА "АВТОЗАПУСК" -----
+        # ----- "AUTOSTART" CHECKBOX -----
         self.autostart_var = tk.BooleanVar(value=self.is_autostart_enabled())
-        autostart_cb = tk.Checkbutton(
+        self.autostart_cb = tk.Checkbutton(
             self.root,
-            text="Запускать при старте Windows",
+            text=t("autostart_label"),
             variable=self.autostart_var,
             font=("Segoe UI", 10),
             fg="#888888",
@@ -453,13 +499,13 @@ class SkufUpApp:
             activebackground="#1a1a2e",
             command=self.toggle_autostart
         )
-        autostart_cb.pack()
+        self.autostart_cb.pack(padx=30)
         
-        # ----- ГАЛОЧКА "СВОРАЧИВАТЬ ПРИ ЗАПУСКЕ" -----
+        # ----- "MINIMIZE ON START" CHECKBOX -----
         self.minimize_var = tk.BooleanVar(value=self.settings.get("minimize_on_start", False))
-        minimize_cb = tk.Checkbutton(
+        self.minimize_cb = tk.Checkbutton(
             self.root,
-            text="Сворачивать при запуске",
+            text=t("minimize_label"),
             variable=self.minimize_var,
             font=("Segoe UI", 10),
             fg="#888888",
@@ -468,96 +514,136 @@ class SkufUpApp:
             activebackground="#1a1a2e",
             command=self.toggle_minimize_on_start
         )
-        minimize_cb.pack()
+        self.minimize_cb.pack(padx=30)
         
-        # ----- КНОПКА "СВЕРНУТЬ" -----
-        minimize_btn = tk.Button(
+        # ----- "MINIMIZE" BUTTON -----
+        self.minimize_btn = tk.Button(
             self.root,
-            text="Свернуть",
+            text=t("btn_minimize"),
             font=("Segoe UI", 9),
             fg="#666666",
             bg="#252547",
             activebackground="#333355",
             relief=tk.FLAT,
             cursor="hand2",
-            command=self.root.iconify  # Свернуть окно
+            command=self.root.iconify  # Minimize window
         )
-        minimize_btn.pack(pady=10)
+        self.minimize_btn.pack(pady=10)
     
     
     # ========================================================================
-    # МЕТОДЫ ДЛЯ РАБОТЫ С ЦЕЛЬЮ (ИГРА ИЛИ САЙТ)
+    # METHODS FOR WORKING WITH TARGET (GAME OR WEBSITE)
     # ========================================================================
+    
+    def change_language(self, event=None):
+        """
+        Change application language and refresh UI.
+        """
+        # Get language code from display name
+        selected_name = self.lang_var.get()
+        new_lang = "en"
+        for code, name in self.languages.items():
+            if name == selected_name:
+                new_lang = code
+                break
+        
+        set_language(new_lang)
+        
+        # Save language to settings
+        self.settings["language"] = new_lang
+        save_settings(self.settings)
+        
+        # Update all UI texts
+        self.root.title(t("window_title"))
+        self.subtitle_label.config(text=t("subtitle"))
+        self.status_label.config(text=t("status_inactive") if not self.is_listening else t("status_listening"))
+        self.target_label.config(text=t("target_label"))
+        self.btn_game.config(text=t("btn_select_game"))
+        self.btn_website.config(text=t("btn_select_website"))
+        self.url_hint_label.config(text=t("url_hint"))
+        self.save_url_btn.config(text=t("btn_save_url"))
+        self.btn_change.config(text=t("btn_change"))
+        self.toggle_btn.config(text=t("btn_stop") if self.is_listening else t("btn_start"))
+        self.autostart_cb.config(text=t("autostart_label"))
+        self.minimize_cb.config(text=t("minimize_label"))
+        self.minimize_btn.config(text=t("btn_minimize"))
+        
+        # Update context menu
+        self.context_menu.entryconfig(0, label=t("menu_paste"))
+        self.context_menu.entryconfig(1, label=t("menu_clear"))
+        
+        # Update target display
+        self.update_target_display()
     
     def update_target_display(self):
         """
-        Обновить отображение текущей цели.
+                Update current target display.
         
-        Если цель выбрана - показываем её.
-        Если не выбрана - скрываем блок.
+        If target is selected - show it.
+        If not selected - hide the block.
         """
         target_type = self.settings.get("target_type", "")
         target_path = self.settings.get("target_path", "")
         
         if target_path:
-            # Есть цель - показываем
+            # Target exists - show it
             self.current_target_frame.pack(fill=tk.X, pady=(10, 0))
-            self.website_frame.pack_forget()  # Скрываем поле ввода сайта
+            self.website_frame.pack_forget()  # Hide website input field
             
             if target_type == "game":
-                self.target_type_label.config(text="🎮 Игра:")
-                # Показываем только имя файла, не весь путь
+                self.target_type_label.config(text=t("target_type_game"))
+                # Show only filename, not full path
                 self.target_path_label.config(text=os.path.basename(target_path))
             else:
-                self.target_type_label.config(text="🌐 Сайт:")
+                self.target_type_label.config(text=t("target_type_website"))
                 self.target_path_label.config(text=target_path)
         else:
-            # Нет цели - скрываем оба блока
+            # No target - hide both blocks
             self.current_target_frame.pack_forget()
             self.website_frame.pack_forget()
     
     def select_game(self):
         """
-        Открыть диалог выбора игры (.exe файла).
+        Open game selection dialog (.exe file).
         """
         file_path = filedialog.askopenfilename(
-            title="Выберите игру",
+            title=t("dialog_select_game"),
             filetypes=[
-                ("Исполняемые файлы", "*.exe"),
-                ("Все файлы", "*.*")
+                (t("dialog_exe_files"), "*.exe"),
+                (t("dialog_all_files"), "*.*")
             ]
         )
         
         if file_path:
-            # Пользователь выбрал файл
+            # User selected a file
             self.settings["target_type"] = "game"
             self.settings["target_path"] = file_path
             
             if save_settings(self.settings):
-                messagebox.showinfo("Готово!", f"Игра сохранена:\n{os.path.basename(file_path)}")
+                messagebox.showinfo(t("dialog_saved_game"), t("dialog_game_saved_msg", os.path.basename(file_path)))
                 self.update_target_display()
     
     def show_website_input(self):
         """
-        Показать поле для ввода URL сайта.
+        Show URL input field.
         """
-        self.current_target_frame.pack_forget()  # Скрываем текущую цель
-        self.website_frame.pack(fill=tk.X, pady=(10, 0))  # Показываем поле ввода
-        self.url_entry.delete(0, tk.END)  # Очищаем поле
-        self.url_entry.focus_set()  # Ставим курсор в поле
+        self.current_target_frame.pack_forget()  # Hide current target
+        self.website_frame.pack(fill=tk.X, pady=(10, 0))  # Show input field
+        self.url_entry.delete(0, tk.END)  # Clear field
+        self.url_entry.focus_set()  # Set focus to field
     
     def save_website(self, event=None):
         """
-        Сохранить введённый сайт.
+        Save entered website.
         
-        Вызывается при нажатии Enter или кнопки "Сохранить".
+        Called when Enter is pressed or "Save" button is clicked.
         """
         url = self.url_entry.get().strip()
         
         if not url:
-            return  # Пустая строка - ничего не делаем
+            return  # Empty string - do nothing
         
-        # Добавляем https:// если пользователь не написал
+        # Add https:// if user didn't write it
         if not url.startswith(("http://", "https://")):
             url = "https://" + url
         
@@ -565,14 +651,14 @@ class SkufUpApp:
         self.settings["target_path"] = url
         
         if save_settings(self.settings):
-            messagebox.showinfo("Готово!", f"Сайт сохранён:\n{url}")
+            messagebox.showinfo(t("dialog_saved_website"), t("dialog_website_saved_msg", url))
             self.update_target_display()
         else:
-            messagebox.showerror("Ошибка", "Не удалось сохранить настройки")
+            messagebox.showerror(t("dialog_error"), t("dialog_save_error"))
     
     def clear_target(self):
         """
-        Очистить текущую цель (для изменения).
+        Clear current target (for changing).
         """
         self.settings["target_type"] = ""
         self.settings["target_path"] = ""
@@ -581,7 +667,7 @@ class SkufUpApp:
     
     def paste_url(self, event=None):
         """
-        Вставить URL из буфера обмена (Ctrl+V).
+        Paste URL from clipboard (Ctrl+V).
         """
         try:
             clipboard = self.root.clipboard_get()
@@ -589,11 +675,11 @@ class SkufUpApp:
             self.url_entry.insert(0, clipboard)
         except:
             pass
-        return "break"  # Не передаём событие дальше
+        return "break"  # Don't pass event further
     
     def paste_url_from_menu(self):
         """
-        Вставить URL из контекстного меню.
+        Paste URL from context menu.
         """
         try:
             clipboard = self.root.clipboard_get()
@@ -604,7 +690,7 @@ class SkufUpApp:
     
     def show_context_menu(self, event):
         """
-        Показать контекстное меню при правом клике.
+        Show context menu on right click.
         """
         try:
             self.context_menu.tk_popup(event.x_root, event.y_root)
@@ -613,12 +699,12 @@ class SkufUpApp:
     
     
     # ========================================================================
-    # МЕТОДЫ ПРОСЛУШИВАНИЯ МИКРОФОНА
+    # MICROPHONE LISTENING METHODS
     # ========================================================================
     
     def toggle_listening(self):
         """
-        Переключить прослушивание (старт/стоп).
+        Toggle listening (start/stop).
         """
         if self.is_listening:
             self.stop_listening()
@@ -627,44 +713,44 @@ class SkufUpApp:
     
     def start_listening(self):
         """
-        Начать прослушивание микрофона.
+        Start listening to microphone.
         
-        1. Проверяем, что выбрана цель (игра или сайт)
-        2. Меняем кнопку на "СТОП"
-        3. Запускаем поток прослушивания
+        1. Check that target is selected (game or website)
+        2. Change button to "STOP"
+        3. Start listening thread
         """
-        # Проверяем, есть ли цель
+        # Check if target exists
         if not self.settings.get("target_path"):
-            messagebox.showwarning("Внимание", "Сначала выберите игру или укажите сайт!")
+            messagebox.showwarning(t("dialog_warning"), t("dialog_select_target"))
             return
         
         self.is_listening = True
         self.stop_flag.clear()
         
-        # Меняем индикатор на зелёный
+        # Change indicator to green
         self.status_indicator.config(fg="#22c55e")
-        self.status_label.config(text="Слушаю...", fg="#22c55e")
+        self.status_label.config(text=t("status_listening"), fg="#22c55e")
         
-        # Меняем кнопку на "СТОП" (красная)
-        self.toggle_btn.config(text="■  СТОП", bg="#dc2626", activebackground="#b91c1c")
+        # Change button to "STOP" (red)
+        self.toggle_btn.config(text=t("btn_stop"), bg="#dc2626", activebackground="#b91c1c")
         
-        # Запускаем прослушивание в отдельном потоке (чтобы окно не зависало)
+        # Start listening in separate thread (so window doesn't freeze)
         self.listen_thread = threading.Thread(target=self.listen_loop, daemon=True)
         self.listen_thread.start()
     
     def stop_listening(self):
         """
-        Остановить прослушивание микрофона.
+        Stop listening to microphone.
         """
         self.is_listening = False
-        self.stop_flag.set()  # Сигнал потоку остановиться
+        self.stop_flag.set()  # Signal thread to stop
         
-        # Меняем индикатор на серый
+        # Change indicator to gray
         self.status_indicator.config(fg="#666666")
-        self.status_label.config(text="Остановлен", fg="#888888")
+        self.status_label.config(text=t("status_stopped"), fg="#888888")
         
-        # Меняем кнопку на "СТАРТ" (зелёная)
-        self.toggle_btn.config(text="▶  СТАРТ", bg="#16a34a", activebackground="#15803d")
+        # Change button to "START" (green)
+        self.toggle_btn.config(text=t("btn_start"), bg="#16a34a", activebackground="#15803d")
     
     def listen_loop(self):
         """
@@ -715,7 +801,7 @@ class SkufUpApp:
         """
         # Меняем индикатор на жёлтый
         self.status_indicator.config(fg="#eab308")
-        self.status_label.config(text="🍺 ПИВО!", fg="#eab308")
+        self.status_label.config(text=t("status_beer"), fg="#eab308")
         
         # Запускаем игру или открываем сайт
         self.launch_target()
@@ -729,7 +815,7 @@ class SkufUpApp:
         """
         if self.is_listening:
             self.status_indicator.config(fg="#22c55e")
-            self.status_label.config(text="Слушаю...", fg="#22c55e")
+            self.status_label.config(text=t("status_listening"), fg="#22c55e")
     
     def launch_target(self):
         """
